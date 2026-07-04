@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Weatherly— Weather App</title>
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+        }
+
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(160deg, #1a2a6c, #2a5298, #4a7bb7);
+            padding: 20px;
+        }
+
+        
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h1 {
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        
+        .search {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .search input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            background: #ffd166;
+            color: #1a2a6c;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .search button:hover {
+            background: #ffde8f;
+        }
+
+        
+        .weather {
+            text-align: center;
+            display: none; 
+        }
+
+        .weather .icon {
+            font-size: 70px;
+        }
+
+        .weather .temp {
+            font-size: 56px;
+            font-weight: 700;
+        }
+
+        .weather .city {
+            font-size: 20px;
+            margin-top: 5px;
+        }
+
+        .weather .desc {
+            font-size: 16px;
+            opacity: 0.85;
+            margin-top: 5px;
+        }
+
+        
+        .details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .details .box {
+            text-align: center;
+        }
+
+        .details .box .value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .details .box .label {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 3px;
+        }
+
+        
+        .message {
+            text-align: center;
+            font-size: 15px;
+            opacity: 0.9;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>⛅ Weatherly</h1>
+
+        
+        <div class="search">
+            <input type="text" id="cityInput" placeholder="Enter city name..." />
+            <button id="searchBtn">Search</button>
+        </div>
+
+        
+        <p class="message" id="message">Type a city and press Search</p>
+
+        
+        <div class="weather" id="weather">
+            <div class="icon" id="icon">☀️</div>
+            <div class="temp" id="temp">--°C</div>
+            <div class="city" id="cityName">--</div>
+            <div class="desc" id="desc">--</div>
+
+            <div class="details">
+                <div class="box">
+                    <div class="value" id="humidity">--%</div>
+                    <div class="label">Humidity</div>
+                </div>
+                <div class="box">
+                    <div class="value" id="wind">-- km/h</div>
+                    <div class="label">Wind</div>
+                </div>
+                <div class="box">
+                    <div class="value" id="feels">--°C</div>
+                    <div class="label">Feels like</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        const cityInput = document.getElementById("cityInput");
+        const searchBtn = document.getElementById("searchBtn");
+        const message   = document.getElementById("message");
+        const weather   = document.getElementById("weather");
+
+        
+        
+        const weatherTypes = {
+            0:  ["Clear sky", "☀️"],
+            1:  ["Mostly clear", "🌤️"],
+            2:  ["Partly cloudy", "⛅"],
+            3:  ["Overcast", "☁️"],
+            45: ["Foggy", "🌫️"],
+            48: ["Foggy", "🌫️"],
+            51: ["Light drizzle", "🌦️"],
+            53: ["Drizzle", "🌦️"],
+            55: ["Heavy drizzle", "🌧️"],
+            61: ["Light rain", "🌧️"],
+            63: ["Rain", "🌧️"],
+            65: ["Heavy rain", "🌧️"],
+            71: ["Light snow", "🌨️"],
+            73: ["Snow", "🌨️"],
+            75: ["Heavy snow", "❄️"],
+            80: ["Rain showers", "🌦️"],
+            81: ["Rain showers", "🌧️"],
+            82: ["Violent showers", "⛈️"],
+            95: ["Thunderstorm", "⛈️"],
+            96: ["Thunderstorm + hail", "⛈️"],
+            99: ["Thunderstorm + hail", "⛈️"]
+        };
+
+        
+        async function getWeather() {
+            const city = cityInput.value.trim();
+
+            if (city === "") {
+                message.textContent = "Please type a city name first!";
+                return;
+            }
+
+            message.textContent = "Loading...";
+            weather.style.display = "none";
+
+            try {
+                
+                const geoRes = await fetch(
+                    `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`
+                );
+                const geoData = await geoRes.json();
+
+                
+                if (!geoData.results || geoData.results.length === 0) {
+                    message.textContent = "City not found. Check the spelling!";
+                    return;
+                }
+
+                const place = geoData.results[0];
+
+                
+                const weatherRes = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m`
+                );
+                const weatherData = await weatherRes.json();
+                const current = weatherData.current;
+
+                
+                const code = current.weather_code;
+                const [descText, emoji] = weatherTypes[code] || ["Unknown", "🌍"];
+
+                document.getElementById("icon").textContent     = emoji;
+                document.getElementById("temp").textContent     = Math.round(current.temperature_2m) + "°C";
+                document.getElementById("cityName").textContent = place.name + ", " + (place.country || "");
+                document.getElementById("desc").textContent     = descText;
+                document.getElementById("humidity").textContent = current.relative_humidity_2m + "%";
+                document.getElementById("wind").textContent     = Math.round(current.wind_speed_10m) + " km/h";
+                document.getElementById("feels").textContent    = Math.round(current.apparent_temperature) + "°C";
+
+                
+                message.textContent = "";
+                weather.style.display = "block";
+
+            } catch (error) {
+                message.textContent = "Something went wrong. Check your internet connection.";
+                console.error(error);
+            }
+        }
+
+        
+        searchBtn.addEventListener("click", getWeather);
+
+        
+        cityInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                getWeather();
+            }
+        });
+    </script>
+
+</body>
+</html>
